@@ -1,9 +1,10 @@
 
 import mmap
+import os
 import self_documenting_struct as struct
 from enum import Enum, IntFlag
 from typing import Optional
-from . import resources
+from . import resource_table
 
 ## Models the header information for the MS-DOS (MZ) stub.
 class MZ:
@@ -35,6 +36,7 @@ class NE:
             # This is useful for fully in-memory files (like files read from an archive)
             # and never stored on the filesystem.
             self.stream = stream
+        self.filepath = filepath
 
         # READ THE MS-DOS (MZ) HEADER.
         self.mz = MZ(self.stream)
@@ -47,7 +49,20 @@ class NE:
 
         # READ THE RESOURCE TABLE.
         self.stream.seek(self.header.resource_table_offset)
-        self.resource_table = resources.ResourceTable(self.stream)
+        self.resource_table = resource_table.ResourceTable(self.stream)
+
+    @property
+    def executable_name(self):
+        return os.path.split(self.filepath)[1]
+
+    ## Exports all the resources in this executable.
+    def export_resources(self, directory_path):
+        for resource_type_code, resource_type in self.resource_table.resources.items():
+            resource_type_string: str = resource_type_code.name if isinstance(resource_type_code, resource_table.ResourceType) else resource_type_code
+            for resource_id, resource in resource_type.items():
+                export_filename = f'{self.executable_name}-{resource_type_string}-{resource_id}'
+                export_filepath = os.path.join(directory_path, export_filename)
+                resource.export(export_filepath)
 
 ## Models an NE header. This is sometimes called a "Windows header",
 ## but that is not quite correct as other platforms like OS/2 can use this header too.
