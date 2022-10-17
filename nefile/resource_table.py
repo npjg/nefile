@@ -7,6 +7,7 @@ from enum import Enum, IntFlag
 from .resources.bitmap import Bitmap
 from .resources.icon import GroupIcon, Icon
 from .resources.application_defined_data import ApplicationDefinedData
+from .resources.string import StringTable
 
 ## I did not know exactly what the NE resource types are,
 ## so I copied the relevant ones from the Win32 documentation:
@@ -121,6 +122,8 @@ class ResourceTable:
             return Bitmap(self.stream, resource_declaration, self)
         elif resource_type_code == ResourceType.RT_GROUP_ICON:
             return GroupIcon(self.stream, resource_declaration, self)
+        elif resource_type_code == ResourceType.RT_STRING:
+            return StringTable(self.stream, resource_declaration, self)
         else:
             return ApplicationDefinedData(self.stream, resource_declaration, self)
 
@@ -149,7 +152,7 @@ class ResourceTypeTable:
             # This specifies the offset in bytes, relative to the start of the resource table,
             # where the string name for this type can be found.
             type_string_offset_from_file_start = resource_table_start_offset + raw_type_data
-            self.type_code = ResourceString(stream, type_string_offset_from_file_start)
+            self.type_code = ResourceString(stream, type_string_offset_from_file_start).string
 
         # READ THE RESOURCE DECLARATIONS FOR THIS TYPE.
         resource_count = struct.unpack.uint16_le(stream)
