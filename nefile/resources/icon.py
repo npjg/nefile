@@ -1,7 +1,7 @@
 
 import self_documenting_struct as struct
 import os
-from Bitmap import BitmapInfoHeader
+from .bitmap import BitmapInfoHeader
 
 ## Reads an RT_GROUP_ICON resource.
 ## In the executable, the RT_GROUP_ICON resource itself 
