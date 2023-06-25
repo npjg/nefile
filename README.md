@@ -1,10 +1,7 @@
-# nefile
+Like its namesake [`pefile`](https://github.com/erocarrera/pefile) does for the modern Portable Executable format, this `nefile` library parses the ancient 16-bit New Executable (NE) format.I
+I drafted this library because here are not many good cross-platform tools for analyzing and extracting data (more than just code) from NE files. For instance, Ghidra is great at decompilation but not really at resources. This library fills that gap. Also, I just love Windows 3.1.
 
-Like its namesake [`pefile`](https://github.com/erocarrera/pefile) does for the modern Portable Executable format, `nefile` parses the ancient 16-bit New Executable format.
-
-There are not many good cross-platform tools for analyzing and extracting data (more than just code) from NE files. For instance, Ghidra is great at decompilation but not really at resources. This library fills that gap. Also, I just love Windows 3.1.
-
-Currently there is read-only support for the NE header and resources.
+Currently there is read-only support for the NE header and resources, as that's all I need at the moment. Feel free to contribute if you need other functionality!
 
 ## Example Usage
 
