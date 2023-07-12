@@ -1,9 +1,12 @@
-Like its namesake [`pefile`](https://github.com/erocarrera/pefile) does for the modern Portable Executable format, this `nefile` library parses the ancient 16-bit New Executable (NE) format.I
+Like its namesake [`pefile`](https://github.com/erocarrera/pefile) does for the modern Portable Executable format, this `nefile` library parses the ancient 16-bit New Executable (NE) format. 
 I drafted this library because here are not many good cross-platform tools for analyzing and extracting data (more than just code) from NE files. For instance, Ghidra is great at decompilation but not really at resources. This library fills that gap. Also, I just love Windows 3.1.
 
-Currently there is read-only support for the NE header and resources, as that's all I need at the moment. Feel free to contribute if you need other functionality!
+Currently there is read-only support for the NE header and resources, as that's all I need at the moment. Feel free to contribute if you need other functionality from Python!
 
-## Example Usage
+## Installation
+Get it [on PyPI](https://pypi.org/project/nefile/): ```pip3 install nefile```
+
+## Usage
 
 ```python
 import nefile
