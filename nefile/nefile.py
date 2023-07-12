@@ -15,7 +15,7 @@ class MZ:
 
 ## Models a New Executable file.
 class NE:
-    def __init__(self, filepath: str = None, stream = None):
+    def __init__(self, filepath: str = None, stream = None, user_defined_resource_parsers = {}):
         # MAP THE FILE DATA.
         # A filepath can be provided to open a file from disk, or an in-memory binary stream can be provided.
         # However, providing both of these is an error.
@@ -49,7 +49,7 @@ class NE:
 
         # READ THE RESOURCE TABLE.
         self.stream.seek(self.header.resource_table_offset)
-        self.resource_table = resource_table.ResourceTable(self.stream)
+        self.resource_table = resource_table.ResourceTable(self.stream, user_defined_resource_parsers)
 
     @property
     def executable_name(self):
@@ -58,7 +58,7 @@ class NE:
     ## Exports all the resources in this executable.
     def export_resources(self, directory_path):
         for resource_type_code, resource_type in self.resource_table.resources.items():
-            resource_type_string: str = resource_type_code.name if isinstance(resource_type_code, resource_table.ResourceType) else resource_type_code
+            resource_type_string: str = resource_type_code.name if isinstance(resource_type_code, Enum) else resource_type_code
             for resource_id, resource in resource_type.items():
                 export_filename = f'{self.executable_name}-{resource_type_string}-{resource_id}'
                 export_filepath = os.path.join(directory_path, export_filename)
