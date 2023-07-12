@@ -55,6 +55,7 @@ class ResourceTable:
         # TODO: Support more built-in resources.
         self.resource_parsers = {
             ResourceType.RT_CURSOR: Cursor,
+            ResourceType.RT_ICON: Icon,
             ResourceType.RT_GROUP_ICON: GroupIcon,
             ResourceType.RT_STRING: StringTable
         }
