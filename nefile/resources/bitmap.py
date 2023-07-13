@@ -56,8 +56,6 @@ class BitmapInfoHeader:
 class Bitmap:
     def __init__(self, stream, resource_declaration, resource_library):
         self.resource_id = resource_declaration.id
-
-        # READ THE BITMAP INFO HEADER.
         # Because we want to read the bitmap info header
         # as part of the resource data, the stream must be reset. 
         bitmap_info_header_start = stream.tell()
@@ -66,15 +64,18 @@ class Bitmap:
         self.data = stream.read(resource_declaration.resource_length_in_bytes)
 
     ## Exports this resource as a BMP file.
-    ## @param[in] filepath - The filepath of the file to export.
-    ##            A suffix will be added with the resource type and ID
-    ##            to make this filepath unique.
-    def export(self, filepath):
-        with open(filepath + ".bmp", 'wb') as icon_file:
+    ## \param[in] export_filepath - The filepath of the file to export.
+    ##            A BMP extension will be added if it isn't already present.
+    def export(self, export_filepath):
+        BMP_FILENAME_EXTENSION = '.bmp'
+        filename_extension_present = (export_filepath[:-4].lower() == BMP_FILENAME_EXTENSION)
+        if not filename_extension_present:
+            export_filepath += BMP_FILENAME_EXTENSION
+        with open(export_filepath, 'wb') as icon_file:
             self.write_bmp_file(icon_file)
 
     ## Writes a complete and readable BMP file to the given stream.
-    ## @param[in] stream - The stream at the start of the resource data.
+    ## \param[in] stream - The stream at the start of the resource data.
     def write_bmp_file(self, stream):
         self.bitmap_file_header.encode(stream)
         stream.write(self.data)

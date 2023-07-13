@@ -21,13 +21,16 @@ class GroupIcon:
             referenced_icon = resource_table.find_resource_by_id(icon_directory_entry.icon_resource_id, type_id = ResourceType.RT_ICON)
             self.icons.update({icon_directory_entry.icon_resource_id: referenced_icon})
 
-    ## Exports this resource as a BMP file.
-    ## @param[in] filepath - The filepath of the file to export.
-    ##            A suffix will be added with the resource type and ID
-    ##            to make this filepath unique.
-    def export(self, filepath):
+    ## Exports this resource as a set of BMP file.
+    ## \param[in] export_filepath - The filepath of the file to export.
+    ##            An ICO extension will be added if it isn't already present.
+    def export(self, export_filepath):
+        ICO_FILENAME_EXTENSION = '.ico'
+        filename_extension_present = (export_filepath[:-4].lower() == ICO_FILENAME_EXTENSION)
+        if not filename_extension_present:
+            export_filepath += ICO_FILENAME_EXTENSION
         for index, icon in enumerate(self.icons.values()):
-            with open(filepath + ".ico", 'wb') as icon_file:
+            with open(export_filepath, 'wb') as icon_file:
                 icon.write_ico_file(icon_file)
 
 ## Reads/writes the first structure in an ICO file (ICONDIR) 
@@ -74,8 +77,8 @@ class IconDirectoryEntry:
             self.decode(stream, as_group_entry)
 
     ## Populates the fields of this class with values unpacked from a binary stream.
-    ## @param[in] as_group_entry - True if the stream contains a GRPICONDIRENTRY structure,
-    ##                             False if the stream contains a plain ICONDIRENTRY structure.
+    ## \param[in] as_group_entry - True if the stream contains a GRPICONDIRENTRY structure,
+    ##            False if the stream contains a plain ICONDIRENTRY structure.
     def decode(self, stream, as_group_entry: bool):
         self.width = struct.unpack.uint8(stream)
         self.height = struct.unpack.uint8(stream)
@@ -90,8 +93,8 @@ class IconDirectoryEntry:
             self.bitmap_start_offset = struct.unpack.uint32_le(stream)
 
     ## Packs the values in class into a binary stream.
-    ## @param[in] as_group_entry - True if this object contains a GRPICONDIRENTRY structure,
-    ##                             False if this object contains a plain ICONDIRENTRY structure.
+    ## \param[in] as_group_entry - True if this object contains a GRPICONDIRENTRY structure,
+    ##            False if this object contains a plain ICONDIRENTRY structure.
     def encode(self, stream, as_group_entry: bool = False):
         stream.write(struct.pack.uint8(self.width))
         stream.write(struct.pack.uint8(self.height))
@@ -106,19 +109,21 @@ class IconDirectoryEntry:
 
 ## Reads an RT_ICON resource.
 class Icon:
-    def __init__(self, stream, resource_declaration, resource_library):
+    def __init__(self, stream, resource_declaration):
         self.resource_id = resource_declaration.id
         resource_start = stream.tell()
         self.bitmap_header = BitmapInfoHeader(stream)
         stream.seek(resource_start)
         self.data = stream.read(resource_declaration.resource_length_in_bytes)
 
-    ## Exports this resource as a BMP file.
-    ## @param[in] filepath - The filepath of the file to export.
-    ##            A suffix will be added with the resource type and ID
-    ##            to make this filepath unique.
-    def export(self, filepath):
-        with open(filepath + ".ico", 'wb') as icon_file:
+    ## Exports this resource as an ICO file.
+    ## \param[in] filepath - The filepath of the file to export.
+    def export(self, export_filepath):
+        ICO_FILENAME_EXTENSION = '.ico'
+        filename_extension_present = (export_filepath[:-4].lower() == ICO_FILENAME_EXTENSION)
+        if not filename_extension_present:
+            export_filepath += ICO_FILENAME_EXTENSION
+        with open(export_filepath, 'wb') as icon_file:
             self.write_ico_file(icon_file)
 
     ## Writes a complete ICO file that has one icon - the icon described by this image.
