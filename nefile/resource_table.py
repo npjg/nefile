@@ -221,8 +221,17 @@ class ResourceString:
         stream.seek(offset_from_stream_start)
         string_length = struct.unpack.uint8(stream)
         if string_length > 0:
-           # For NE streams, ASCII should always be used.
-           self.string = stream.read(string_length).decode('ascii')
+            # if the string contains \0 then it's probably due to a memory
+            # offset error when the resource was compiled. Safe string handling
+            # wasn't really a thing at the time. In the modern day, the data
+            # after the \0 could be someone's credit card details!
+            buffer = stream.read(string_length)
+            zero_terminator = buffer.find(b'\x00')
+            if zero_terminator != -1:
+                buffer = buffer[:zero_terminator]
+
+            # For NE streams, ASCII should always be used.
+            self.string = buffer.decode('ascii')
         else:
             self.string = ''
 
