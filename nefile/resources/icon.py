@@ -46,7 +46,8 @@ class IconDirectory:
 
     def decode(self, stream):
         self.signature = struct.unpack.uint16_le(stream)
-        assert self.signature == 0x0000
+        if self.signature != 0x0000:
+            raise ValueError('Icon directory signature is not valid.')
         self.type = struct.unpack.uint16_le(stream)
         self.icon_count = struct.unpack.uint16_le(stream)
 

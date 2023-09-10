@@ -14,7 +14,8 @@ class GroupCursor:
     def __init__(self, stream, resource_library):
         # READ THE FILE SIGNATURE.
         ICO_FILE_SIGNATURE = b'\x00\x00\x01\x00'
-        assert stream.read(1) == ICO_FILE_SIGNATURE
+        if stream.read(1) != ICO_FILE_SIGNATURE:
+            raise ValueError('The cursor resource is not in ICO format.')
         cursor_count = stream.uint16_le()
 
         self.cursors = []

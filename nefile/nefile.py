@@ -22,7 +22,7 @@ class NE:
         # First, we see if the data sources are ambiguous.
         more_than_one_data_source_provided: bool = filepath is not None and stream is not None
         if more_than_one_data_source_provided:
-            raise ValueError('A filepath and a stream cannot both be provided to define a stream.' 
+            raise ValueError('A filepath and a stream cannot both be provided to define a stream. ' 
                              'The data source of the file would be ambiguous')
         only_filepath_provided = filepath is not None
         if only_filepath_provided:
@@ -113,7 +113,8 @@ class NEHeader:
         # VERIFY THE SIGNATURE.
         self.start_offset = stream.tell()
         NE_SIGNATURE = b'NE'
-        assert stream.read(2) == NE_SIGNATURE
+        if stream.read(2) != NE_SIGNATURE:
+            raise ValueError('This is not an NE file.')
 
         # READ THE HEADER DATA.
         # These fields don't really follow a logical progression,
