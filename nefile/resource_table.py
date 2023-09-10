@@ -68,6 +68,14 @@ class ResourceTable:
         # The shift count is the an exponent of 2 (left shift),
         # for calculating start offsets and lengths of resource data.
         self.alignment_shift_count = struct.unpack.uint16_le(stream)
+        # Because this would actually fit in a nibble, you can bet that people
+        # in the past optimized by using a byte instead of a word.
+        # Doing this in a C struct with a dummy for the high byte, then
+        # writing it to disk would cause the high byte to be filled with random
+        # data from RAM, scuppering anyone who followed the spec. We've seen
+        # values in the high byte in the wild, so mask it out here to avoid
+        # crashes.
+        self.alignment_shift_count &= 0x00ff
 
         # READ THE RESOURCE TYPE DECLARATIONS (TTYPEINFO).
         self.resource_type_tables = {}
