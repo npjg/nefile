@@ -19,7 +19,9 @@ class BitmapFileHeader:
             self.decode(stream)
 
     def decode(self, stream):
-        assert stream.read(2) == self.WINDOWS_BITMAP_FILE_HEADER
+        if stream.read(2) != self.WINDOWS_BITMAP_FILE_HEADER:
+            raise ValueError('Bitmap resource is not a bitmap file.')
+
         self.bitmap_length_in_bytes = struct.unpack.uint32_le(stream)
         self.reserved_value1 = struct.unpack.uint16_le(stream)
         self.reserved_value2 = struct.unpack.uint16_le(stream)
