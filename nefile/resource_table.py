@@ -68,6 +68,14 @@ class ResourceTable:
         # The shift count is the an exponent of 2 (left shift),
         # for calculating start offsets and lengths of resource data.
         self.alignment_shift_count = struct.unpack.uint16_le(stream)
+        # Because this would actually fit in a nibble, you can bet that people
+        # in the past optimized by using a byte instead of a word.
+        # Doing this in a C struct with a dummy for the high byte, then
+        # writing it to disk would cause the high byte to be filled with random
+        # data from RAM, scuppering anyone who followed the spec. We've seen
+        # values in the high byte in the wild, so mask it out here to avoid
+        # crashes.
+        self.alignment_shift_count &= 0x00ff
 
         # READ THE RESOURCE TYPE DECLARATIONS (TTYPEINFO).
         self.resource_type_tables = {}
@@ -221,8 +229,17 @@ class ResourceString:
         stream.seek(offset_from_stream_start)
         string_length = struct.unpack.uint8(stream)
         if string_length > 0:
-           # For NE streams, ASCII should always be used.
-           self.string = stream.read(string_length).decode('ascii')
+            # if the string contains \0 then it's probably due to a memory
+            # offset error when the resource was compiled. Safe string handling
+            # wasn't really a thing at the time. In the modern day, the data
+            # after the \0 could be someone's credit card details!
+            buffer = stream.read(string_length)
+            zero_terminator = buffer.find(b'\x00')
+            if zero_terminator != -1:
+                buffer = buffer[:zero_terminator]
+
+            # For NE streams, ASCII should always be used.
+            self.string = buffer.decode('ascii')
         else:
             self.string = ''
 
