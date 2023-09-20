@@ -6,9 +6,15 @@ from enum import Enum, IntFlag
 from typing import Optional
 from . import resource_table
 
-## Models the header information for the MS-DOS (MZ) stub.
+## Models the header information for the DOS (MZ) stub.
 class MZ:
     def __init__(self, stream):
+        # VERIFY THE MZ SIGNATURE.
+        actual_signature = stream.read(2)
+        if actual_signature != b'MZ':
+            raise ValueError('This is not a valid NE file, as it does not start with an MZ stub. '
+                            'The file might be packed or corrupt.')
+
         # READ THE NE HEADER START OFFSET.
         stream.seek(0x3c)
         self.ne_header_offset = struct.unpack.uint16_le(stream)
@@ -38,7 +44,7 @@ class NE:
             self.stream = stream
         self.filepath = filepath
 
-        # READ THE MS-DOS (MZ) HEADER.
+        # READ THE DOS (MZ) HEADER.
         self.mz = MZ(self.stream)
         self.stream.seek(self.mz.ne_header_offset)
 
@@ -112,9 +118,15 @@ class NEHeader:
     def __init__(self, stream):
         # VERIFY THE SIGNATURE.
         self.start_offset = stream.tell()
-        NE_SIGNATURE = b'NE'
-        if stream.read(2) != NE_SIGNATURE:
-            raise ValueError('This is not an NE file.')
+        actual_signature = stream.read(2)
+        if (actual_signature != b'NE'):
+            # CHECK IF THIS IS ACTUALLY A PE.
+            # We can show a better error message.
+            if actual_signature == b'PE':
+                raise ValueError('This appears to be a PE file, not an NE file. Use the pefile library instead.')
+            # If we have gotten to this point, we know we have a valid MZ signature,
+            # because that is checked before we read the offset to the NE program.
+            raise ValueError(f'This does not contain a valid NE signature, but it has a valid MZ (DOS-style) signature.')
 
         # READ THE HEADER DATA.
         # These fields don't really follow a logical progression,
