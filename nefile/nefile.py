@@ -164,9 +164,9 @@ class NEHeader:
         # SP is set to the address obtained by adding the size of the
         # automatic data segment to the size of the stack. 
         self.ss_sp_segment_offset = struct.unpack.uint32_le(stream)
-        segment_table_entry_count = struct.unpack.uint16_le(stream)
-        module_reference_table_count = struct.unpack.uint16_le(stream)
-        nonresident_name_table_size_in_bytes = struct.unpack.uint16_le(stream)
+        self.segment_table_entry_count = struct.unpack.uint16_le(stream)
+        self.module_reference_table_count = struct.unpack.uint16_le(stream)
+        self.nonresident_name_table_size_in_bytes = struct.unpack.uint16_le(stream)
         # All of these offsets are from the start of this header.
         self._segment_table_offset_from_header_start = struct.unpack.uint16_le(stream)
         self._resource_table_offset_from_header_start = struct.unpack.uint16_le(stream)
