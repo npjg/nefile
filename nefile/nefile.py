@@ -54,8 +54,20 @@ class NE:
         self.header = NEHeader(self.stream)
 
         # READ THE RESOURCE TABLE.
-        self.stream.seek(self.header.resource_table_offset)
-        self.resource_table = resource_table.ResourceTable(self.stream, user_defined_resource_parsers)
+        try:
+            self.stream.seek(self.header.resource_table_offset)
+            self.resource_table = resource_table.ResourceTable(self.stream, user_defined_resource_parsers)
+        except ValueError:       
+            # TODO: Make this specifically look for a seek error.
+            # Some NEs don't have resource table, as verified by 
+            # wrestool and ResourcesExtract, even though there is 
+            # a valid pointer to a resource table, and this pointer
+            # isn't the same as pointers to other structures in the 
+            # NE. It looks like wrestool can't do any better than this
+            # and just gives up when the resource table has a nonsensical pointer.
+            print(f'INFO [{self.filepath}]: Could not parse resource table. '
+                'The executable probably has no resource table.')
+            self.resource_table = None
 
     @property
     def executable_name(self):
@@ -63,6 +75,8 @@ class NE:
 
     ## Exports all the resources in this executable.
     def export_resources(self, directory_path):
+        if self.resource_table is None:
+            return 
         for resource_type_code, resource_type in self.resource_table.resources.items():
             resource_type_string: str = resource_type_code.name if isinstance(resource_type_code, Enum) else resource_type_code
             for resource_id, resource in resource_type.items():
@@ -190,7 +204,7 @@ class NEHeader:
     ## The offset actually stored is the offset of the resource table from the
     ## start of this header.
     @property
-    def resource_table_offset(self) -> int:
+    def resource_table_offset(self) -> Optional[int]:
         return self.start_offset + self._resource_table_offset_from_header_start
     
     ## Returns true if there is a local heap allocated; false otherwise.
