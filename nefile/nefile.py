@@ -1,9 +1,10 @@
 
+from enum import Enum, IntFlag
 import mmap
 import os
-import self_documenting_struct as struct
-from enum import Enum, IntFlag
 from typing import Optional
+
+import self_documenting_struct as struct
 from . import resource_table
 
 ## Models the header information for the DOS (MZ) stub.
@@ -70,17 +71,18 @@ class NE:
             self.resource_table = None
 
     @property
-    def executable_name(self):
+    def filename(self):
         return os.path.split(self.filepath)[1]
 
-    ## Exports all the resources in this executable.
     def export_resources(self, directory_path):
+        print(f'Exporting resources for {self.filepath}')
         if self.resource_table is None:
             return 
+        
         for resource_type_code, resource_type in self.resource_table.resources.items():
             resource_type_string: str = resource_type_code.name if isinstance(resource_type_code, Enum) else resource_type_code
             for resource_id, resource in resource_type.items():
-                export_filename = f'{self.executable_name}-{resource_type_string}-{resource_id}'
+                export_filename = f'{self.filename}-{resource_type_string}-{resource_id}'
                 export_filepath = os.path.join(directory_path, export_filename)
                 resource.export(export_filepath)
 
@@ -199,7 +201,7 @@ class NEHeader:
     @property
     def expected_windows_version(self) -> str:
         return f'{self.expected_windows_major_version}.{self.expected_windows_revision}'
-        
+
     ## Calculates the offset of the resource table from the start of the stream.
     ## The offset actually stored is the offset of the resource table from the
     ## start of this header.
@@ -208,8 +210,6 @@ class NEHeader:
         return self.start_offset + self._resource_table_offset_from_header_start
     
     ## Returns true if there is a local heap allocated; false otherwise.
-    ## \author Nathanael Gentry
-    ## \date   09/26/2022
     @property
     def local_heap_allocated(self) -> bool:
         return self.initial_heap_size_in_bytes > 0
