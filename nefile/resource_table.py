@@ -119,8 +119,7 @@ class ResourceTable:
         # PARSE RESOURCES FROM ALL OTHER RESOURCE TYPES.
         # THese resource types are processed as they appear in the file.
         for resource_type_table in self.resource_type_tables.values():
-            resource_already_parsed = ResourceType.has_value(resource_type_table.type_code)
-            if not resource_already_parsed:
+            if not resource_type_table.was_parsed:
                 resources = self._parse_resources(resource_type_table)
                 self._resources.update({resource_type_table.type_code: resources})
 
@@ -139,6 +138,7 @@ class ResourceTable:
             self.stream.seek(resource_declaration.data_start_offset)
             resource = defined_resource_parser(self.stream, resource_declaration, self)
             resources.update({resource_declaration.id: resource})
+        resource_type_table.was_parsed = True
         return resources
 
     ## Finds a resource by its type and resource ID.
@@ -160,6 +160,7 @@ class ResourceTypeTable:
         # The offset is relative to the beginning of the resource
         # table. 
         self.resource_declarations = []
+        self.was_parsed = False
         self.is_end_flag = False
         raw_type_data = struct.unpack.uint16_le(stream)
         if raw_type_data == 0x0000:
