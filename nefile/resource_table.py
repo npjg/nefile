@@ -145,7 +145,14 @@ class ResourceTable:
     ## The type is required because two resources with different types
     ## can have the same resource ID.
     def find_resource_by_id(self, resource_id, type_id):
-        return self.resources.get(type_id, {}).get(resource_id, None)
+        resource_type_dictionary = self.resources.get(type_id)
+        if resource_type_dictionary is None:
+            raise ValueError(f'Could not find resource type {type_id}.')
+        
+        found_resource = resource_type_dictionary.get(resource_id)
+        if found_resource is None:
+            raise ValueError(f'Could not find resource of type {type_id} with ID {resource_id}.')
+        return found_resource
 
 ## Declares each of the resource types stored in this stream.
 ## Resource data is not actually accessible until the resources are parsed.
