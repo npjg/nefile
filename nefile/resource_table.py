@@ -173,10 +173,17 @@ class ResourceTypeTable:
         if raw_type_data == 0x0000:
             self.is_end_flag = True
             return
-        type_code_is_integer: bool = raw_type_data & 0x8000
+        type_code_is_integer: bool = (raw_type_data & 0x8000)
         if type_code_is_integer:
-            self.type_code = raw_type_data & 0x7fff
-            self.type_code = ResourceType(self.type_code) if ResourceType.has_value(self.type_code) else self.type_code
+            integer_type_code = raw_type_data & 0x7fff
+            if ResourceType.has_value(integer_type_code):
+                # Store as the enum value rather than the numeric type
+                # for better self-documentation.
+                self.type_code = ResourceType(integer_type_code)
+            else:
+                # We don't have an enum value. The integer type is 
+                # the best we've got.
+                self.type_code = integer_type_code
         else:
             # This specifies the offset in bytes, relative to the start of the resource table,
             # where the string name for this type can be found.
