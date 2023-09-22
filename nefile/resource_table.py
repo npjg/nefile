@@ -35,17 +35,10 @@ class ResourceType(Enum):
     def has_value(cls, value):
         return value in (val.value for val in cls.__members__.values())
 
-
 ## Declares each of the resource types and resources in this NE stream.
 ## The resource declarations are read immediately, but the resource data 
 ## is only parsed when requested.
 class ResourceTable:
-    BUILT_IN_RESOURCE_PARSERS = {
-        ResourceType.RT_CURSOR: Cursor,
-        ResourceType.RT_GROUP_ICON: GroupIcon,
-        ResourceType.RT_STRING: StringTable
-    }
-
     ## Reads a resource table from a binary stream.
     ## \param[in] stream - The binary stream positioned at the resource table start.
     ## \param[in] user_defined_resource_parsers - A dict that maps resource type IDs
@@ -61,7 +54,7 @@ class ResourceTable:
         }
         self.resource_parsers.update(user_defined_resource_parsers)
     
-        # READ THE RESORUCE METADATA.
+        # READ THE RESOURCE METADATA.
         self.stream = stream
         self._resources = None
         self.resource_table_start_offset = stream.tell()
@@ -194,7 +187,7 @@ class ResourceTypeTable:
         resource_count = struct.unpack.uint16_le(stream)
         # TODO: Document this, if it can be documented.
         self.reserved = stream.read(4)
-        for index in range(resource_count):
+        for _ in range(resource_count):
             resource_declaration = ResourceDeclaration(stream, alignment_shift_count, resource_table_start_offset)
             self.resource_declarations.append(resource_declaration)
 
@@ -226,7 +219,7 @@ class ResourceDeclaration:
             self.id = raw_id_data & 0x7fff
         else:
             # This specifies the offset in bytes, relative to the start of the resource table,
-            # where the string name for this type can be found.
+            # where the string name for this resource can be found.
             id_string_offset_from_file_start = resource_table_start_offset + raw_id_data
             self.id = ResourceString(stream, id_string_offset_from_file_start).string
         # TODO: Document this, if it can be documented.
