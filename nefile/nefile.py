@@ -17,6 +17,14 @@ class MZ:
                             'The file might be packed or corrupt.')
 
         # READ THE NE HEADER START OFFSET.
+        # "If the word value at offset 18h is 40h or greater, the word value at 3Ch
+        #  is an offset to a Windows header." (W3.1PRV4, p. 69)
+        # TODO: Look at the DOS Programmer's Manual to determine what this field actually is.
+        stream.seek(0x18)
+        has_offset_to_ne_header = (struct.unpack.uint16_le(stream) >= 0x40)
+        if not has_offset_to_ne_header:
+            raise ValueError("This is not a valid NE file, as the DOS header doesn't have an offset to an NE header." 
+                            'The file might be packed or corrupt.')
         stream.seek(0x3c)
         self.ne_header_offset = struct.unpack.uint16_le(stream)
 
