@@ -1,7 +1,16 @@
 Like its namesake [`pefile`](https://github.com/erocarrera/pefile) does for the modern Portable Executable format, this `nefile` library parses the ancient 16-bit New Executable (NE) format. 
-I drafted this library because here are not many good cross-platform tools for analyzing and extracting data (more than just code) from NE files. For instance, Ghidra is great at decompilation but not really at resources. This library fills that gap. Also, I just love Windows 3.1.
+
+I drafted this library because here are not many good cross-platform tools for analyzing and extracting data (more than just code) from NE files. For instance, Ghidra is great at decompilation but not really at resources. `wrestool` and `icoutils` are the only tools I have found to date that can extract resources from NE files, but I ran into multiple issues using `wrestool`, including resources being corrupted upon extraction. 
+
+This library fills the gap. Also, I just love Windows 3.1.
 
 Currently there is read-only support for the NE header and resources, as that's all I need at the moment. Feel free to contribute if you need other functionality from Python!
+
+## Spec References
+The main spec reference used is the Microsoft Windows 3.1 Programmer's Reference, Volume 4 (Resources), referred to 
+in the code as `W3.1PRV4`. 
+
+The Microsoft MS-DOS Programmer's Reference helped provide insight into the DOS MZ header. 
 
 ## Installation
 Get it [on PyPI](https://pypi.org/project/nefile/): ```pip3 install nefile```
@@ -39,5 +48,5 @@ shell = nefile.NE('/media/windows-3.1/WINDOWS/SYSTEM/SHELL.DLL')
 # dict_keys([<ResourceType.RT_BITMAP: 2>, <ResourceType.RT_DIALOG: 5>, <ResourceType.RT_STRING: 6>, 
 #            <ResourceType.RT_RCDATA: 10>, <ResourceType.RT_VERSION: 16>, 100])
 shell.export_resources("/root/shell")
-# Produces files with names like "SHELL.DLL-RT_BITMAP-130.bmp"
+# Produces files with names like "SHELL.DLL-RT_BITMAP-130.bmp".
 ```
