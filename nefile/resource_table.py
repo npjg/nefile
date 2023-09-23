@@ -128,8 +128,27 @@ class ResourceTable:
         # PARSE THE RESOURCES OF THIS TYPE.
         resources = {}
         for resource_declaration in resource_type_table.resource_declarations:
+            # print(f'INFO: Parsing {resource_type_table.type_code} resource {resource_declaration.id} @ 0x{resource_declaration.data_start_offset:04x}')
             self.stream.seek(resource_declaration.data_start_offset)
-            resource = defined_resource_parser(self.stream, resource_declaration, self)
+            try:
+                resource = defined_resource_parser(self.stream, resource_declaration, self)
+            except Exception as exception:
+                # ISSUE A WARNING.
+                # This is not a fatal error, as we can still try to just export the raw resource data.
+                print(f'WARNING: Could not parse {resource_type_table.type_code} resource {resource_declaration.id}:')
+                print(f'{traceback.format_exc()}')
+                print('Attempting to just read raw resource data, not attempt to parse it.')
+
+                # READ THE RAW RESOURCE DATA.
+                try:
+                    self.stream.seek(resource_declaration.data_start_offset)
+                    resource = ApplicationDefinedData(self.stream, resource_declaration, self)
+                except Exception as exception:
+                    # ISSUE AN ERROR.
+                    print(f'ERROR: Could not export {resource_type_table.type_code} resource {resource_declaration.id} as raw data.')
+                    print(f'{traceback.format_exc()}')
+                    print('This NE file is probably corrupt.')
+
             resources.update({resource_declaration.id: resource})
         resource_type_table.was_parsed = True
         return resources
