@@ -6,7 +6,7 @@ from enum import Enum, IntFlag
 
 from .resources.bitmap import Bitmap
 from .resources.icon import GroupIcon, Icon
-from .resources.cursor import Cursor
+from .resources.cursor import GroupCursor, Cursor
 from .resources.application_defined_data import ApplicationDefinedData
 from .resources.string import StringTable
 
@@ -47,10 +47,12 @@ class ResourceTable:
         # DEFINE THE RESOURCE PARSERS.
         # TODO: Support more built-in resources.
         self.resource_parsers = {
-            ResourceType.RT_CURSOR: Cursor,
             ResourceType.RT_ICON: Icon,
+            ResourceType.RT_BITMAP: Bitmap,
+            ResourceType.RT_CURSOR: Cursor,
             ResourceType.RT_GROUP_ICON: GroupIcon,
-            ResourceType.RT_STRING: StringTable
+            ResourceType.RT_GROUP_CURSOR: GroupCursor,
+            ResourceType.RT_STRING: StringTable,
         }
         self.resource_parsers.update(user_defined_resource_parsers)
     
