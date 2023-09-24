@@ -1,8 +1,7 @@
 
-from dataclasses import dataclass
-import resource
-import self_documenting_struct as struct
 from enum import Enum, IntFlag
+import traceback
+import self_documenting_struct as struct
 
 from .resources.bitmap import Bitmap
 from .resources.icon import GroupIcon, Icon
