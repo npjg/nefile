@@ -1,86 +1,93 @@
 
 import self_documenting_struct as struct
-import os
-from .bitmap import BitmapInfoHeader
 
-## Reads an RT_GROUP_ICON resource.
-## In the executable, the RT_GROUP_ICON resource itself 
-## only holds the icon directory for the icons in the group, so
-## we must look up the icons elsewhere in this resource library.
-## \param[in] resource - The resource to be modeled by this class.
+from .bitmap import Bitmap
+
+## Models an RT_GROUP_ICON resource.
+## \param[in] resource_declaration - The resource to be modeled by this class.
 ## \param[in] resource_table - The full resource table from the executable.
 class GroupIcon:
     def __init__(self, stream, resource_declaration, resource_table):
         self.resource_id = resource_declaration.id
+
+        # FIND THE ICONS THAT ARE IN THIS GROUP.
+        # In the executable, the RT_GROUP_ICON resource itself 
+        # only holds the icon directory for the icons in the group, so
+        # we must look up the icons elsewhere in this resource library.
         self.icons = {}
         self.icon_directory = IconDirectory(stream)
-        for index in range(self.icon_directory.icon_count):
+        for directory_entry in self.icon_directory.directory_entries:
             # GET THE REFERENCED ICON.
             from nefile.resource_table import ResourceType
-            icon_directory_entry = IconDirectoryEntry(stream, as_group_entry = True)
-            referenced_icon = resource_table.find_resource_by_id(icon_directory_entry.icon_resource_id, type_id = ResourceType.RT_ICON)
-            self.icons.update({icon_directory_entry.icon_resource_id: referenced_icon})
+            referenced_icon = resource_table.find_resource_by_id(directory_entry.icon_resource_id, type_id = ResourceType.RT_ICON)
+            referenced_icon.is_in_group = True
+            self.icons.update({directory_entry.icon_resource_id: referenced_icon})
 
-    ## Exports this resource as a set of BMP file.
+    ## Exports all icons in this resource into a single ICO file on the filesystem.
+    ## ICO files can contain multiple icons, so no information is lost.
     ## \param[in] export_filepath - The filepath of the file to export.
-    ##            An ICO extension will be added if it isn't already present.
+    ##  An ICO extension will be added if it isn't already present.
     def export(self, export_filepath):
         ICO_FILENAME_EXTENSION = '.ico'
         filename_extension_present = (export_filepath[:-4].lower() == ICO_FILENAME_EXTENSION)
         if not filename_extension_present:
             export_filepath += ICO_FILENAME_EXTENSION
-        for index, icon in enumerate(self.icons.values()):
-            with open(export_filepath, 'wb') as icon_file:
-                icon.write_ico_file(icon_file)
 
-## Reads/writes the first structure in an ICO file (ICONDIR) 
-## and RT_GROUP_ICON resource (GRPICONDIR).
+        # CALCULATE THE IMAGE OFFSETS.
+        icon_image_start_pointers = []
+        current_offset = self.icon_directory.length_in_bytes
+        for icon in self.icons.values():
+            icon_image_start_pointers.append(current_offset)
+            current_offset += len(icon.data)
+
+        with open(export_filepath, 'wb') as icon_file:
+            # WRITE THE ICON DIRECTORY.
+            self.icon_directory.encode(icon_file)
+            for directory_entry, image_start_pointer in zip(self.icon_directory.directory_entries, icon_image_start_pointers):
+                directory_entry.encode(icon_file, image_start_pointer)
+            
+            # WRITE THE ICON IMAGES.
+            for icon in self.icons.values():
+                icon_file.write(icon.data)
+
+## Models the ICONDIR structure.
 class IconDirectory:
-    LENGTH_IN_BYTES = 0x06
-    def __init__(self, stream = None):
-        self.signature: int = 0x0000
-        self.type: int = 0x0001
-        self.icon_count: int = 0x0000
-        if stream is not None:
-            self.decode(stream)
+    # This is the length of the structure assuming 
+    # zero icon directory entries.
+    MINIMUM_LENGTH_IN_BYTES = 0x06
 
-    def decode(self, stream):
+    def __init__(self, stream):
         self.signature = struct.unpack.uint16_le(stream)
         if self.signature != 0x0000:
             raise ValueError('Icon directory signature is not valid.')
         self.type = struct.unpack.uint16_le(stream)
+
+        # READ THE ICON DIRECTORY ENTRIES.
+        # Yes, a list comprehension could be used here. But I find this
+        # easier for debugging individual reads.
+        self.directory_entries = []
         self.icon_count = struct.unpack.uint16_le(stream)
+        for _ in range(self.icon_count):
+            directory_entry = IconDirectoryEntry(stream)
+            self.directory_entries.append(directory_entry)
 
     def encode(self, stream):
         stream.write(struct.pack.uint16_le(self.signature))
         stream.write(struct.pack.uint16_le(self.type))
         stream.write(struct.pack.uint16_le(self.icon_count))
 
-## Read/writes the ICONDIRENTRY and GRPICONENTRY structures.
-## The GRPICONDIRENTRY structure is the same as the usual ICONDIRENTRY structure,
-## except the last entry specifies the resource ID of the referenced icon,
-## rather than the offset to the icon in the file.
+    @property
+    def length_in_bytes(self):
+        directory_entries_length = self.icon_count * IconDirectoryEntry.LENGTH_IN_BYTES
+        return self.MINIMUM_LENGTH_IN_BYTES + directory_entries_length
+
+## Models the ICONDIRENTRY structure.
 ## (Source: https://devblogs.microsoft.com/oldnewthing/20120720-00/?p=7083)
 class IconDirectoryEntry:
+    # Only for written out.
     LENGTH_IN_BYTES = 0x10
-    GROUP_LENGTH_IN_BYTES = 0x0e
-    def __init__(self, stream = None, as_group_entry: bool = False):
-        self.width = None
-        self.height = None
-        # Should be 0 if the image does not use a color palette.
-        self.total_palette_colors = None
-        self.color_planes = None
-        self.bits_per_pixel = None
-        self.icon_size_in_bytes = None
-        self.icon_resource_id = None
-        self.bitmap_start_offset = None
-        if stream is not None:
-            self.decode(stream, as_group_entry)
 
-    ## Populates the fields of this class with values unpacked from a binary stream.
-    ## \param[in] as_group_entry - True if the stream contains a GRPICONDIRENTRY structure,
-    ##            False if the stream contains a plain ICONDIRENTRY structure.
-    def decode(self, stream, as_group_entry: bool):
+    def __init__(self, stream):
         self.width = struct.unpack.uint8(stream)
         self.height = struct.unpack.uint8(stream)
         # Should be 0 if the image does not use a color palette.
@@ -88,81 +95,39 @@ class IconDirectoryEntry:
         self.color_planes = struct.unpack.uint16_le(stream)
         self.bits_per_pixel = struct.unpack.uint16_le(stream)
         self.icon_size_in_bytes = struct.unpack.uint32_le(stream)
-        if as_group_entry:
-            self.icon_resource_id = struct.unpack.uint16_le(stream)
-        else:
-            self.bitmap_start_offset = struct.unpack.uint32_le(stream)
+        self.icon_resource_id = struct.unpack.uint16_le(stream)
 
     ## Packs the values in class into a binary stream.
-    ## \param[in] as_group_entry - True if this object contains a GRPICONDIRENTRY structure,
-    ##            False if this object contains a plain ICONDIRENTRY structure.
-    def encode(self, stream, as_group_entry: bool = False):
+    ## \param[in] image_start_offset - The start pointer to the image
+    ##  represented by this directory entry in the file. For icon
+    ##  files written, this takes the place of the resource ID.
+    def encode(self, stream, image_start_offset):
         stream.write(struct.pack.uint8(self.width))
         stream.write(struct.pack.uint8(self.height))
         stream.write(struct.pack.uint16_le(self.total_palette_colors))
         stream.write(struct.pack.uint16_le(self.color_planes))
         stream.write(struct.pack.uint16_le(self.bits_per_pixel))
         stream.write(struct.pack.uint32_le(self.icon_size_in_bytes))
-        if as_group_entry:
-            stream.write(struct.pack.uint16_le(self.icon_resource_id))
-        else:
-            stream.write(struct.pack.uint32_le(self.bitmap_start_offset))
+        stream.write(struct.pack.uint32_le(image_start_offset))
 
-## Reads an RT_ICON resource.
-class Icon:
-    def __init__(self, stream, resource_declaration):
-        self.resource_id = resource_declaration.id
-        resource_start = stream.tell()
-        self.bitmap_header = BitmapInfoHeader(stream)
-        stream.seek(resource_start)
-        self.data = stream.read(resource_declaration.resource_length_in_bytes)
+## Models an RT_ICON resource.
+## This icon cannot be directly exported. It must be exported as part
+## of a RT_GROUP_ICON resource.
+## \param[in] resource_declaration - The resource to be modeled by this class.
+## \param[in] resource_library - The full resource table from the executable.
+class Icon(Bitmap):
+    def __init__(self, stream, resource_declaration, resource_library):
+        self.is_in_group = False
+        super().__init__(stream, resource_declaration, resource_library)
 
-    ## Exports this resource as an ICO file.
-    ## \param[in] filepath - The filepath of the file to export.
-    def export(self, export_filepath):
-        ICO_FILENAME_EXTENSION = '.ico'
-        filename_extension_present = (export_filepath[:-4].lower() == ICO_FILENAME_EXTENSION)
-        if not filename_extension_present:
-            export_filepath += ICO_FILENAME_EXTENSION
-        with open(export_filepath, 'wb') as icon_file:
-            self.write_ico_file(icon_file)
-
-    ## Writes a complete ICO file that has one icon - the icon described by this image.
-    def write_ico_file(self, stream):
-        self.ico_directory.encode(stream)
-        self.ico_directory_entry.encode(stream)
-        stream.write(self.data)
-
-    ## Creates an icon directory (ICO file header).
-    ## When paired with an icon directory entry and an RT_ICON resource,
-    ## a complete ICO file can be written.
-    @property
-    def ico_directory(self):
-        ico_directory = IconDirectory()
-        ico_directory.icon_count = 1
-        return ico_directory
-
-    ## Returns an icon directory entry for this icon. When paired with an icon directory,
-    ## and an RT_ICON resource, a complete ICO file can be written.
-    ## Non-grouped icon resources from NE binaries are just like RT_BITMAP resources:
-    ##  - These resouces begin with a BITMAPINFOHEADER structure, not a BITMAPFILEINFO header.
-    ##  - These resources do NOT begin with ICONDIR or ICONDIRENTRY structures.
-    ##    However, they CANNOT simply be exported as bitmaps becuase the ICO transparency must
-    ##    still be applied.
-    ##
-    ## Icon (as opposed to group icon) resources only ever have one icon, so we know everything needed to 
-    ## construct a valid ICO file.
-    @property
-    def ico_directory_entry(self):
-        # CREATE THE ICO DIRECTORY ENTRY FROM THE BITMAP HEADER.
-        directory_entry = IconDirectoryEntry()
-        directory_entry.width = self.bitmap_header.width
-        directory_entry.height = self.bitmap_header.height // 2
-        directory_entry.total_palette_colors = self.bitmap_header.total_palette_colors
-        directory_entry.color_planes = self.bitmap_header.color_planes
-        directory_entry.bits_per_pixel = self.bitmap_header.bits_per_pixel
-        directory_entry.icon_size_in_bytes = len(self.data)
-        # Since there is only one directory entry, we know the size of the icon directory
-        # (the sum of the sizes of the previous entries plus this one).
-        directory_entry.bitmap_start_offset = IconDirectory.LENGTH_IN_BYTES + IconDirectoryEntry.LENGTH_IN_BYTES
-        return directory_entry
+    def export(self, filepath):
+        if self.is_in_group:
+            # This icon will be exported as part of the group.
+            return
+        
+        ## The reason for this limitation is that
+        ## exporting an icon on its own would require creating an icon directory
+        ## from scratch, which is doable but a bit beyond the scope of this library.
+        ## Icons that don't belong to a group have not been observed in the wild as yet. 
+        raise ValueError(f'Cannot export icon {self.resource_id} since it is not part of a group.')
+        
