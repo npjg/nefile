@@ -93,13 +93,12 @@ class Bitmap:
     def export(self, filepath):
         BMP_FILENAME_EXTENSION = '.bmp'
         filename_extension_present = (filepath[:-4].lower() == BMP_FILENAME_EXTENSION)
+        if self.has_bitmap_core_header:
+            filepath += "BITMAPCORE"
         if not filename_extension_present:
             filepath += BMP_FILENAME_EXTENSION
         with open(filepath, 'wb') as icon_file:
             self.save_as_bmp(icon_file)
-        if self.bitmap_header.header_length == 0x0c:
-            print(filepath)
-            print()
 
     ## Writes a complete and viewable BMP file to the given binary stream.
     def save_as_bmp(self, stream):
@@ -132,6 +131,7 @@ class Bitmap:
 
         # Calculate the palette size.
         if not self.has_bitmap_core_header:
+            BYTES_PER_PALETTE_ENTRY = 4 # RGBQUAD
             use_default_total_palette_count = (self.bitmap_header.total_palette_colors == 0)
             if use_default_total_palette_count:
                 total_palette_count = 2 ** self.bitmap_header.bits_per_pixel
@@ -139,8 +139,8 @@ class Bitmap:
                 total_palette_count = self.bitmap_header.total_palette_colors
 
         else:
-             total_palette_count = 2 ** self.bitmap_header.bits_per_pixel
-        BYTES_PER_PALETTE_ENTRY = 4
+            BYTES_PER_PALETTE_ENTRY = 3 # RGBTRIPLE
+            total_palette_count = 2 ** self.bitmap_header.bits_per_pixel
         palette_size_in_bytes = total_palette_count * BYTES_PER_PALETTE_ENTRY
         # Calculate the starting offset.
         # Then, we can calculate the starting offset of the bitmap
