@@ -22,10 +22,7 @@ class BitmapFileHeader:
         stream.write(struct.pack.uint16_le(self.reserved_value2))
         stream.write(struct.pack.uint32_le(self.pixel_data_start_offset))
 
-## Reads the BITMAPINFOHEADER structure (the most common DIB header).
-# TODO: This assumes the resource is a Windows bitmap.
-# But this is not in fact guaranteed. Check for the 
-# OS/2 signatures too.
+## Reads a Windows BITMAPINFOHEADER structure (the most common DIB header).
 class BitmapInfoHeader:
     def __init__(self, stream):
         self.header_length = struct.unpack.uint32_le(stream)
@@ -44,11 +41,11 @@ class BitmapInfoHeader:
         self.total_palette_colors = struct.unpack.uint32_le(stream)
         self.total_important_colors = struct.unpack.uint32_le(stream)
 
-## Reads the BITMAPCOREHEADER structure (a DIB header that is sometimes used).
+## Reads a Windows BITMAPCOREHEADER structure (a DIB header that is sometimes used).
 ## The BITMAPCOREHEADER is part of BITMAPCOREINFO, which also contains
 ## palette information.
 ## "Windows applications should use the BITMAPINFO structure instead 
-## of BITMAPCOREINFO whenever possible.""
+## of BITMAPCOREINFO whenever possible."
 class BitmapCoreHeader:
     def __init__(self, stream):
         self.header_length = struct.unpack.uint32_le(stream)
@@ -94,6 +91,8 @@ class Bitmap:
         BMP_FILENAME_EXTENSION = '.bmp'
         filename_extension_present = (filepath[:-4].lower() == BMP_FILENAME_EXTENSION)
         if self.has_bitmap_core_header:
+            # These are rather uncommon right now, so I still want to identify them
+            # to see if they can be viewed correctly.
             filepath += "BITMAPCORE"
         if not filename_extension_present:
             filepath += BMP_FILENAME_EXTENSION
@@ -142,9 +141,9 @@ class Bitmap:
             BYTES_PER_PALETTE_ENTRY = 3 # RGBTRIPLE
             total_palette_count = 2 ** self.bitmap_header.bits_per_pixel
         palette_size_in_bytes = total_palette_count * BYTES_PER_PALETTE_ENTRY
-        # Calculate the starting offset.
-        # Then, we can calculate the starting offset of the bitmap
-        # as the sum of all the structures that come before it.
+
+        # The bitmap pixel data start pointer is the sum 
+        # of the sizes of all the structures that come before it.
         bitmap_file_header.pixel_data_start_offset = BitmapFileHeader.LENGTH_IN_BYTES + \
             self.bitmap_header.header_length + bitfield_length + palette_size_in_bytes
 
