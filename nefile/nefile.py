@@ -6,6 +6,7 @@ from typing import Optional
 
 import self_documenting_struct as struct
 from . import resource_table
+from . import Exceptions
 
 ## Models the header information for the DOS (MZ) stub.
 class MZ:
@@ -13,8 +14,9 @@ class MZ:
         # VERIFY THE MZ SIGNATURE.
         actual_signature = stream.read(2)
         if actual_signature != b'MZ':
-            raise ValueError('This is not a valid NE file, as it does not start with an MZ stub. '
-                            'The file might be packed or corrupt.')
+            raise Exceptions.NotValidNewExecutableError(
+                'This is not a valid NE file, as it does not start with an MZ stub. '
+                'The file might be packed or corrupt.')
 
         # READ THE NE HEADER START OFFSET.
         # "If the word value at offset 18h is 40h or greater, the word value at 3Ch
@@ -23,8 +25,9 @@ class MZ:
         stream.seek(0x18)
         has_offset_to_ne_header = (struct.unpack.uint16_le(stream) >= 0x40)
         if not has_offset_to_ne_header:
-            raise ValueError("This is not a valid NE file, as the DOS header doesn't have an offset to an NE header." 
-                            'The file might be packed or corrupt.')
+            raise Exceptions.NotValidNewExecutableError(
+                "This is not a valid NE file, as the DOS header doesn't have an offset to an NE header." 
+                'The file might be packed or corrupt.')
         stream.seek(0x3c)
         self.ne_header_offset = struct.unpack.uint16_le(stream)
 
@@ -37,8 +40,9 @@ class NE:
         # First, we see if the data sources are ambiguous.
         more_than_one_data_source_provided: bool = filepath is not None and stream is not None
         if more_than_one_data_source_provided:
-            raise ValueError('A filepath and a stream cannot both be provided to define a stream. ' 
-                             'The data source of the file would be ambiguous')
+            raise ValueError(
+                'A filepath and a stream cannot both be provided to define a stream. ' 
+                'The data source of the file would be ambiguous')
         only_filepath_provided = filepath is not None
         if only_filepath_provided:
             # MAP THE DATA AT THIS FIELPATH TO A BINARY STREAM WITH READ-ONLY ACCESS.
@@ -147,10 +151,13 @@ class NEHeader:
             # CHECK IF THIS IS ACTUALLY A PE.
             # We can show a better error message.
             if actual_signature == b'PE':
-                raise ValueError('This appears to be a PE file, not an NE file. Use the pefile library instead.')
+                raise Exceptions.IsPortableExecutableError(
+                    'This appears to be a PE file, not an NE file. Use the pefile library instead.')
             # If we have gotten to this point, we know we have a valid MZ signature,
             # because that is checked before we read the offset to the NE program.
-            raise ValueError(f'This does not contain a valid NE signature, but it has a valid MZ (DOS-style) signature.')
+            raise Exceptions.NotValidNewExecutableError(
+                f'This does not contain a valid NE signature, but it has a valid MZ (DOS-style) signature. '
+                'The file might be packed or corrupted.')
 
         # READ THE HEADER DATA.
         # These fields don't really follow a logical progression,
