@@ -50,3 +50,12 @@ shell = nefile.NE('/media/windows-3.1/WINDOWS/SYSTEM/SHELL.DLL')
 shell.export_resources("/root/shell")
 # Produces files with names like "SHELL.DLL-RT_BITMAP-130.bmp".
 ```
+
+## Tests
+Test data is not included in this repository, but these are the sources  used:
+* [630 Windows 3.x Games](https://archive.org/details/630-windows-3x-games)
+
+To set up tests, create the `tests/test_data` directory and put NEs in there. Currently DLLs and EXEs are picked up.
+If any turn out to be PE files or plain DOS EXEs, they will be marked as skipped in the tests. 
+
+To run the tests, just run `pytest` from the root of the repository.
