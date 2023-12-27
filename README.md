@@ -4,7 +4,11 @@ I drafted this library because here are not many good cross-platform tools for a
 
 This library fills the gap. Also, I just love Windows 3.1.
 
-Currently there is read-only support for the NE header and resources, as that's all I need at the moment. Feel free to contribute if you need other functionality from Python!
+Currently there is read-only support for the NE header and resources, as that's all I need at the moment. Feel free to contribute if you need other functionality from Python.
+
+If you like my projects, please consider supporting me!
+
+<a href="https://www.buymeacoffee.com/natster" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
 ## Spec References
 The main spec reference used is the Microsoft Windows 3.1 Programmer's Reference, Volume 4 (Resources), referred to 
