@@ -1,6 +1,5 @@
 #! python3
 
-import glob
 import pytest
 import tempfile
 import traceback
@@ -35,14 +34,22 @@ binaries = find_dll_and_exe_files('tests/test_data')
 def test_nefile_export(binary):
     # Create a temporary directory for export
     with tempfile.TemporaryDirectory() as temp_export_dir:
-        # 
-        f = nefile.NE(binary)
-
         # ATTEMPT TO EXPORT THE RESOURCES IN THIS NE.
         try:
+            f = nefile.NE(binary)
             f.export_resources(temp_export_dir)
+            # TODO: Check to make sure the bitmaps have the expected size and everything.
+
+        # CATCH TEST DATA ISSUES.
+        # I still need to remove some DOS executables and PEs from the dataset, 
+        # but for now we will just skip these.
+        except (nefile.Exceptions.NotValidNewExecutableError, nefile.Exceptions.IsPortableExecutableError) as e:
+            pytest.skip(f'Skipping as this is likely an issue with test data and not our code: {str(e)}')
+
+        # CATCH ALL OTHER ISSUES.
+        # We do want to fail the test in this case.
         except Exception as e:
-            # Include the temp directory path in the error message
+            # Include the temp directory path in the error message.
             pytest.fail(f'Error: {binary} {type(e).__name__} {str(e)}\n'
                         f'Temp directory: {temp_export_dir}\n'
                         f'{traceback.format_exc()}')
