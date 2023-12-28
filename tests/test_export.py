@@ -53,3 +53,8 @@ def test_nefile_export(binary):
             pytest.fail(f'Error: {binary} {type(e).__name__} {str(e)}\n'
                         f'Temp directory: {temp_export_dir}\n'
                         f'{traceback.format_exc()}')
+
+# This isn't required for running the tests from the `pytest` command line,
+# but it is useful to be able to debug tests in VS Code.
+if __name__ == "__main__":
+    pytest.main()
